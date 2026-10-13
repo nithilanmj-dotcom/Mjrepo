@@ -86,6 +86,11 @@
           "target": "~/generation/catalog/models/ltx-2.5-pro.ts"
         },
         {
+          "path": "machgen-wan-2.2.ts",
+          "type": "registry:file",
+          "target": "~/generation/catalog/models/machgen-wan-2.2.ts"
+        },
+        {
           "path": "minimax-h3.ts",
           "type": "registry:file",
           "target": "~/generation/catalog/models/minimax-h3.ts"
@@ -499,6 +504,29 @@
           "path": "ltx-2.5-pro.ts",
           "type": "registry:file",
           "target": "~/generation/catalog/models/ltx-2.5-pro.ts"
+        }
+      ]
+    },
+    {
+      "name": "machgen-wan-2.2",
+      "type": "registry:item",
+      "title": "Wan 2.2 (MachGen)",
+      "description": "Wan 2.2 (MachGen) video model for Higgsfield app templates. Requires a template item (studio).",
+      "categories": [
+        "model",
+        "video"
+      ],
+      "meta": {
+        "ids": [
+          "machgen-wan-2.2"
+        ],
+        "surface": "video"
+      },
+      "files": [
+        {
+          "path": "machgen-wan-2.2.ts",
+          "type": "registry:file",
+          "target": "~/generation/catalog/models/machgen-wan-2.2.ts"
         }
       ]
     },

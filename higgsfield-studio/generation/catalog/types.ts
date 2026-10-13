@@ -46,6 +46,8 @@ export type ModelEntry = {
   paths?: PlatformPaths
   /** Custom mapper; wins over `paths`. */
   toPlatform?: (plane: GenerationPlane) => PlatformRequest
+  /** Which backend runs this model. Unset means fal.ai (the original path). */
+  provider?: "fal" | "machgen"
   /** Brand file name in /public/model-icons (without .svg). */
   icon?: string
   /** Picker order, lower first. Unset sorts last. */

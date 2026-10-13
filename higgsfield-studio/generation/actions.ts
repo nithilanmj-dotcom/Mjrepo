@@ -12,7 +12,8 @@ import {
   encodeCredentials,
   parseCredentialInput,
 } from "./credentials"
-import { createVideoClient } from "./provider"
+import { createFalClient } from "./fal-platform"
+import { createMachgenClient, isMachgenRequestId } from "./machgen-platform"
 import type { StatusResult } from "./platform"
 import { toPlatform } from "./to-platform"
 
@@ -45,22 +46,24 @@ export async function submitGeneration(plane: GenerationPlane) {
     settings: parseSettings(model, plane.settings),
   }
   const { path, body } = toPlatform(parsed)
-  return createVideoClient(await readCredentials()).submit(path, body)
+  if (model.provider === "machgen")
+    return createMachgenClient({ apiKey: readMachgenKey() }).submit(path, body)
+  return createFalClient(await readCredentials()).submit(path, body)
 }
 
 /** Every request in flight, answered in one round trip. Next dispatches server
     actions one at a time per client, so a poll per run would queue ahead of the
     next submit — the fan-out belongs on this side of the call, where it is
-    genuinely parallel. */
+    genuinely parallel. Each id is routed to the backend that issued it. */
 export async function getGenerationStatuses(
   data: unknown
 ): Promise<StatusResult[]> {
   const requestIds = parseRequestIds(data)
-  const client = createVideoClient(await readCredentials())
+  const clients = await clientsFor(requestIds)
   return Promise.all(
     requestIds.map(async (requestId): Promise<StatusResult> => {
       try {
-        return { requestId, status: await client.status(requestId) }
+        return { requestId, status: await clients(requestId).status(requestId) }
       } catch (caught) {
         return {
           requestId,
@@ -73,7 +76,35 @@ export async function getGenerationStatuses(
 
 export async function cancelGeneration(data: unknown) {
   const [requestId] = parseRequestIds(data)
-  await createVideoClient(await readCredentials()).cancel(requestId!)
+  const clients = await clientsFor([requestId!])
+  await clients(requestId!).cancel(requestId!)
+}
+
+async function clientsFor(requestIds: string[]) {
+  const fal = requestIds.some((id) => !isMachgenRequestId(id))
+    ? createFalClient(await readCredentials())
+    : null
+  const machgen = requestIds.some(isMachgenRequestId)
+    ? createMachgenClient({ apiKey: readMachgenKey() })
+    : null
+  return (requestId: string) => {
+    if (isMachgenRequestId(requestId)) {
+      if (!machgen) throw new Error("MachGen is not configured for this request")
+      return machgen
+    }
+    if (!fal) throw new Error("fal.ai is not configured for this request")
+    return fal
+  }
+}
+
+/** MachGen runs server-side on the operator's key; the browser never sees it. */
+function readMachgenKey(): string {
+  const key = process.env.MACHGEN_API_KEY?.trim()
+  if (!key)
+    throw new Error(
+      "MachGen models need MACHGEN_API_KEY set in the server environment (.env.local)."
+    )
+  return key
 }
 
 async function readStoredCredentials() {
